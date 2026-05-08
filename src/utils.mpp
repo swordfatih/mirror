@@ -1,0 +1,21 @@
+export module utils;
+
+import std;
+
+namespace utils
+{
+
+export template <std::size_t Size, typename Type>
+consteval auto to_array(const std::vector<Type>& items)
+{
+    if(items.size() != Size)
+    {
+        throw std::runtime_error("vector size does not match array size");
+    }
+
+    std::array<Type, Size> result{};
+    std::ranges::copy(items | std::views::take(Size), result.begin());
+    return result;
+}
+
+} // namespace utils

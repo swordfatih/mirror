@@ -30,11 +30,27 @@ endfunction()
 # ------------------------
 # Library
 # ------------------------
-file(GLOB_RECURSE library_sources "${CMAKE_SOURCE_DIR}/src/**.cpp")
-list(FILTER library_sources EXCLUDE REGEX ".*/main\\.cpp$")
+file(GLOB_RECURSE cpp_sources CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/src/*.cpp")
+file(GLOB_RECURSE module_sources CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/src/*.mpp")
+list(FILTER cpp_sources EXCLUDE REGEX ".*/main\\.cpp$")
 
-if(library_sources)
-    add_library(${PROJECT_NAME}_lib STATIC ${library_sources})
+if(cpp_sources OR module_sources)
+    add_library(${PROJECT_NAME}_lib STATIC)
+
+    if(cpp_sources)
+        target_sources(${PROJECT_NAME}_lib PRIVATE ${cpp_sources})
+    endif()
+
+    if(module_sources)
+        target_sources(${PROJECT_NAME}_lib
+            PUBLIC
+                FILE_SET cxx_modules
+                TYPE CXX_MODULES
+                BASE_DIRS "${CMAKE_SOURCE_DIR}/src"
+                FILES ${module_sources}
+        )
+    endif()
+
     configure_target(${PROJECT_NAME}_lib)
 endif()
 

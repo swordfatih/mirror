@@ -1,0 +1,99 @@
+module;
+
+#include <meta>
+
+export module mirror;
+
+import std;
+import utils;
+
+namespace mirror
+{
+
+export template <typename Type>
+class reflect
+{
+public:
+    class members
+    {
+    public:
+        consteval static auto all()
+        {
+            constexpr auto ctx = std::meta::access_context::current();
+            auto           members = std::meta::members_of(reflect::info(), ctx);
+            return std::define_static_array(members);
+        }
+
+        consteval static auto fields()
+        {
+            constexpr auto ctx = std::meta::access_context::current();
+            auto           members = std::meta::nonstatic_data_members_of(reflect::info(), ctx);
+            return std::define_static_array(members);
+        }
+
+        template <std::size_t Size>
+        consteval static auto names(std::span<const std::meta::info, Size> infos)
+        {
+            std::vector<const char*> names;
+            for(auto info: infos)
+            {
+                if(std::meta::has_identifier(info))
+                {
+                    auto identifier = std::meta::identifier_of(info);
+                    auto name = std::define_static_string(identifier);
+                    names.push_back(name);
+                }
+            }
+
+            return std::define_static_array(names);
+        }
+    };
+
+    consteval static std::meta::info info()
+    {
+        return ^^Type;
+    }
+
+    consteval static auto name()
+    {
+        return std::define_static_string(std::meta::identifier_of(reflect::info()));
+    }
+};
+
+export template <typename Type>
+auto to_string(const Type& object)
+{
+    constexpr auto name = mirror::reflect<Type>::name();
+    std::string    output{name};
+
+    output += " (";
+
+    bool first = true;
+    template for(constexpr auto field: mirror::reflect<Type>::members::fields())
+    {
+        using FieldType = decltype(object.[:field:]);
+
+        if(!first)
+        {
+            output += ", ";
+        }
+        first = false;
+
+        output += std::meta::identifier_of(field);
+
+        if constexpr(std::formattable<FieldType, char>)
+        {
+            output += ": " + std::format("{}", object.[:field:]);
+        }
+        else
+        {
+            output += ": " + mirror::to_string(object.[:field:]);
+        }
+    }
+
+    output += ")";
+
+    return output;
+}
+
+} // namespace mirror
