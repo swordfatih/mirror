@@ -1,0 +1,135 @@
+module;
+
+#include <nlohmann/json.hpp>
+
+export module mirror.json;
+
+import std;
+import mirror.value;
+
+namespace mirror::json
+{
+
+nlohmann::json to_backend(const mirror::value& input)
+{
+    switch(input.type)
+    {
+        case mirror::value::kind::object:
+        {
+            auto output = nlohmann::json::object();
+            for(const auto& [name, child]: input.fields)
+            {
+                output[name] = to_backend(child);
+            }
+            return output;
+        }
+        case mirror::value::kind::array:
+        {
+            auto output = nlohmann::json::array();
+            for(const auto& element: input.elements)
+            {
+                output.push_back(to_backend(element));
+            }
+            return output;
+        }
+        case mirror::value::kind::string:
+            return input.text;
+        case mirror::value::kind::character:
+            return nlohmann::json{{"_primitive", "char"}, {"bits", input.bits}, {"value", input.text}};
+        case mirror::value::kind::signed_integer:
+            return nlohmann::json{{"_primitive", "i"}, {"bits", input.bits}, {"value", input.text}};
+        case mirror::value::kind::unsigned_integer:
+            return nlohmann::json{{"_primitive", "u"}, {"bits", input.bits}, {"value", input.text}};
+        case mirror::value::kind::floating_point:
+            return nlohmann::json{{"_primitive", "f"}, {"bits", input.bits}, {"value", input.text}};
+        case mirror::value::kind::boolean:
+            return input.boolean;
+        case mirror::value::kind::null:
+            return nullptr;
+    }
+
+    return nullptr;
+}
+
+mirror::value from_backend(const nlohmann::json& input)
+{
+    if(input.is_object())
+    {
+        if(input.contains("_primitive"))
+        {
+            const auto kind = input.at("_primitive").get<std::string>();
+            const auto bits = input.at("bits").get<std::size_t>();
+            const auto text = input.at("value").get<std::string>();
+
+            if(kind == "char")
+            {
+                return mirror::value::character(text, bits);
+            }
+            if(kind == "i")
+            {
+                return mirror::value::signed_integer(text, bits);
+            }
+            if(kind == "u")
+            {
+                return mirror::value::unsigned_integer(text, bits);
+            }
+            if(kind == "f")
+            {
+                return mirror::value::floating_point(text, bits);
+            }
+
+            throw std::runtime_error{"unknown mirror scalar kind"};
+        }
+
+        mirror::value output;
+        output.type = mirror::value::kind::object;
+        for(const auto& [name, child]: input.items())
+        {
+            output.fields.emplace_back(name, from_backend(child));
+        }
+        return output;
+    }
+    if(input.is_array())
+    {
+        auto output = mirror::value::array();
+        for(const auto& element: input)
+        {
+            output.elements.emplace_back(from_backend(element));
+        }
+        return output;
+    }
+    if(input.is_string())
+    {
+        return mirror::value::string(input.get<std::string>());
+    }
+    if(input.is_number_unsigned())
+    {
+        return mirror::value::unsigned_integer(input.dump(), 64);
+    }
+    if(input.is_number_integer())
+    {
+        return mirror::value::signed_integer(input.dump(), 64);
+    }
+    if(input.is_number_float())
+    {
+        return mirror::value::floating_point(input.dump(), 64);
+    }
+    if(input.is_boolean())
+    {
+        return mirror::value::boolean_value(input.get<bool>());
+    }
+
+    return {};
+}
+
+export std::string write(const mirror::value& input)
+{
+    return to_backend(input).dump();
+}
+
+export mirror::value read(std::string_view input)
+{
+    return from_backend(nlohmann::json::parse(input));
+}
+
+} // namespace mirror::json

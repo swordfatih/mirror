@@ -2,10 +2,9 @@ module;
 
 #include <meta>
 
-export module mirror;
+export module mirror.reflect;
 
 import std;
-import utils;
 
 namespace mirror
 {
@@ -58,42 +57,17 @@ public:
     {
         return std::define_static_string(std::meta::identifier_of(reflect::info()));
     }
-};
 
-export template <typename Type>
-auto to_string(const Type& object)
-{
-    constexpr auto name = mirror::reflect<Type>::name();
-    std::string    output{name};
-
-    output += " (";
-
-    bool first = true;
-    template for(constexpr auto field: mirror::reflect<Type>::members::fields())
+    template <typename Object, typename Function>
+    constexpr static void for_each_field(Object&& object, Function&& function)
     {
-        using FieldType = decltype(object.[:field:]);
+        using ReflectedType = std::remove_cvref_t<Object>;
 
-        if(!first)
+        template for(constexpr auto field: reflect<ReflectedType>::members::fields())
         {
-            output += ", ";
-        }
-        first = false;
-
-        output += std::meta::identifier_of(field);
-
-        if constexpr(std::formattable<FieldType, char>)
-        {
-            output += ": " + std::format("{}", object.[:field:]);
-        }
-        else
-        {
-            output += ": " + mirror::to_string(object.[:field:]);
+            function(std::meta::identifier_of(field), object.[:field:]);
         }
     }
-
-    output += ")";
-
-    return output;
-}
+};
 
 } // namespace mirror
