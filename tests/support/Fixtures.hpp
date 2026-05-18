@@ -2,10 +2,9 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "backends/json.hpp"
-#include "backends/yaml.hpp"
-#include "deserialize.hpp"
-#include "serialize.hpp"
+#include <mirror/json.hpp>
+#include <mirror/mirror.hpp>
+#include <mirror/yaml.hpp>
 
 #include <algorithm>
 #include <array>

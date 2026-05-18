@@ -1,9 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "adapter.hpp"
-#include "deserialize.hpp"
-#include "serialize.hpp"
-#include "value.hpp"
+#include <mirror/mirror.hpp>
 
 #include <string>
 

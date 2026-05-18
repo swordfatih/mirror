@@ -1,14 +1,12 @@
-#include "backends/json.hpp"
-#include "backends/yaml.hpp"
-#include "deserialize.hpp"
-#include "reflect.hpp"
-#include "serialize.hpp"
-#include "value.hpp"
-
 #include <cstdint>
 #include <memory>
-#include <spdlog/spdlog.h>
 #include <string>
+
+#include <spdlog/spdlog.h>
+
+#include <mirror/json.hpp>
+#include <mirror/mirror.hpp>
+#include <mirror/yaml.hpp>
 
 struct Point
 {

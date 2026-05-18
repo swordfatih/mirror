@@ -39,10 +39,7 @@ struct reflection_adapter
         }
 
         mirror::reflect<ReflectedType>::for_each_field(output, [&](std::string_view name, auto& field_value) {
-            if(const auto* child = input.find(name))
-            {
-                deserialize_value(*child, field_value);
-            }
+            deserialize_value(require_field(input, name), field_value);
         });
     }
 };

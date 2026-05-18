@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "value.hpp"
+#include <mirror/mirror.hpp>
 
 #include <stdexcept>
 

@@ -1,7 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "deserialize.hpp"
-#include "value.hpp"
+#include <mirror/mirror.hpp>
 
 #include "support/Fixtures.hpp"
 
@@ -79,6 +78,12 @@ TEST_CASE("deserialization reports structural mismatches", "[serialization][erro
         object.fields.emplace_back("y", mirror::value::signed_integer("2", 32));
         static_cast<void>(mirror::deserialize<mirror::test::Point>(object));
     }, "unexpected object type");
+
+    mirror::test::require_throws_message([] {
+        auto object = mirror::value::object("Point");
+        object.fields.emplace_back("x", mirror::value::signed_integer("1", 32));
+        static_cast<void>(mirror::deserialize<mirror::test::Point>(object));
+    }, "missing required field");
 
     mirror::test::require_throws_message([] {
         static_cast<void>(mirror::deserialize<std::array<std::int32_t, 2>>(mirror::value::array()));

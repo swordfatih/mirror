@@ -1,9 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "backends/json.hpp"
-#include "backends/yaml.hpp"
-#include "serialize.hpp"
-#include "value.hpp"
+#include <mirror/json.hpp>
+#include <mirror/mirror.hpp>
+#include <mirror/yaml.hpp>
 
 #include "support/Fixtures.hpp"
 
@@ -56,4 +55,15 @@ TEST_CASE("external YAML values use default primitive widths", "[yaml][external]
     REQUIRE(mirror::yaml::read("true").type == mirror::value::kind::boolean);
     REQUIRE(mirror::yaml::read("plain-text").type == mirror::value::kind::string);
     REQUIRE(mirror::yaml::read("- one\n- two\n").elements.size() == 2);
+}
+
+TEST_CASE("external YAML numeric syntax is classified as numeric values", "[yaml][external]")
+{
+    auto positive_integer = mirror::yaml::read("+42");
+    REQUIRE(positive_integer.type == mirror::value::kind::signed_integer);
+    REQUIRE(positive_integer.text == "42");
+
+    REQUIRE(mirror::yaml::read("1e3").type == mirror::value::kind::floating_point);
+    REQUIRE(mirror::yaml::read(".5").type == mirror::value::kind::floating_point);
+    REQUIRE(mirror::yaml::read("1.").type == mirror::value::kind::floating_point);
 }

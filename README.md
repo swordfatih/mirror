@@ -89,12 +89,9 @@ struct User
 Include Mirror headers:
 
 ```cpp
-#include "backends/json.hpp"
-#include "backends/yaml.hpp"
-#include "deserialize.hpp"
-#include "reflect.hpp"
-#include "serialize.hpp"
-#include "value.hpp"
+#include <mirror/json.hpp>
+#include <mirror/mirror.hpp>
+#include <mirror/yaml.hpp>
 ```
 
 Serialize to JSON:
@@ -329,6 +326,30 @@ cmake -S . -B build -G Ninja
 cmake --build build --config Debug
 ```
 
+Use Mirror from another CMake project with FetchContent:
+
+```cmake
+include(FetchContent)
+
+FetchContent_Declare(
+    mirror
+    GIT_REPOSITORY https://github.com/swordfatih/mirror.git
+    GIT_TAG main
+)
+FetchContent_MakeAvailable(mirror)
+
+target_link_libraries(your_target PRIVATE mirror::mirror)
+```
+
+Then include the umbrella header and the backend headers you use:
+
+```cpp
+#include <mirror/mirror.hpp>
+#include <mirror/json.hpp>
+// or
+#include <mirror/yaml.hpp>
+```
+
 The demo executable is disabled by default. Enable it with:
 
 ```powershell
@@ -385,13 +406,9 @@ The test suite is split by area:
 Current public headers:
 
 ```cpp
-#include "reflect.hpp"
-#include "serialize.hpp"
-#include "deserialize.hpp"
-#include "adapter.hpp"
-#include "value.hpp"
-#include "backends/json.hpp"
-#include "backends/yaml.hpp"
+#include <mirror/mirror.hpp>
+#include <mirror/json.hpp>
+#include <mirror/yaml.hpp>
 ```
 
 Internal serialization is routed through `src/detail/dispatch.hpp`. Built-in semantic adapters live under `src/adapters/`. Shared concepts and numeric utilities live under `src/detail/`.
@@ -399,6 +416,12 @@ Internal serialization is routed through `src/detail/dispatch.hpp`. Built-in sem
 Current source layout:
 
 ```text
+include/
+  mirror/
+    mirror.hpp
+    json.hpp
+    yaml.hpp
+
 src/
   adapter.hpp
   serialize.hpp

@@ -2,6 +2,9 @@
 
 #include "support/Fixtures.hpp"
 
+#include <cstdint>
+#include <variant>
+
 TEST_CASE("scalar primitives preserve values through JSON and YAML", "[serialization][scalars]")
 {
     const auto input = mirror::test::make_scalars();
@@ -24,6 +27,16 @@ TEST_CASE("optional and variant values round-trip", "[serialization][optional][v
 
     mirror::test::require_equal(input, mirror::test::json_round_trip(input));
     mirror::test::require_equal(input, mirror::test::yaml_round_trip(input));
+}
+
+TEST_CASE("variant duplicate alternatives preserve the active index", "[serialization][variant]")
+{
+    const std::variant<std::int32_t, std::int32_t> input{std::in_place_index<1>, 42};
+
+    const auto output = mirror::test::json_round_trip(input);
+
+    REQUIRE(output.index() == 1);
+    REQUIRE(std::get<1>(output) == 42);
 }
 
 TEST_CASE("complex nested documents round-trip through JSON and YAML", "[serialization][complex]")

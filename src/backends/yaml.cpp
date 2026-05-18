@@ -11,6 +11,13 @@ namespace mirror::yaml
 namespace
 {
 
+enum class number_kind
+{
+    none,
+    integer,
+    floating_point
+};
+
 YAML::Node to_backend(const mirror::value& input)
 {
     YAML::Node output;
@@ -57,37 +64,85 @@ YAML::Node to_backend(const mirror::value& input)
     return output;
 }
 
-bool is_number(std::string_view input)
+number_kind classify_number(std::string_view input)
 {
     if(input.empty())
     {
-        return false;
+        return number_kind::none;
     }
 
     std::size_t position = 0;
-    if(input[position] == '-')
+    if(input[position] == '-' || input[position] == '+')
     {
         ++position;
     }
+    if(position == input.size())
+    {
+        return number_kind::none;
+    }
 
-    bool saw_digit = false;
+    bool saw_digit_before_dot = false;
     while(position < input.size() && std::isdigit(static_cast<unsigned char>(input[position])))
     {
-        saw_digit = true;
+        saw_digit_before_dot = true;
         ++position;
     }
 
+    bool saw_decimal = false;
+    bool saw_digit_after_dot = false;
     if(position < input.size() && input[position] == '.')
     {
+        saw_decimal = true;
         ++position;
         while(position < input.size() && std::isdigit(static_cast<unsigned char>(input[position])))
         {
-            saw_digit = true;
+            saw_digit_after_dot = true;
             ++position;
         }
     }
 
-    return saw_digit && position == input.size();
+    if(!saw_digit_before_dot && !saw_digit_after_dot)
+    {
+        return number_kind::none;
+    }
+
+    bool saw_exponent = false;
+    if(position < input.size() && (input[position] == 'e' || input[position] == 'E'))
+    {
+        saw_exponent = true;
+        ++position;
+        if(position < input.size() && (input[position] == '-' || input[position] == '+'))
+        {
+            ++position;
+        }
+
+        bool saw_exponent_digit = false;
+        while(position < input.size() && std::isdigit(static_cast<unsigned char>(input[position])))
+        {
+            saw_exponent_digit = true;
+            ++position;
+        }
+        if(!saw_exponent_digit)
+        {
+            return number_kind::none;
+        }
+    }
+
+    if(position != input.size())
+    {
+        return number_kind::none;
+    }
+
+    return saw_decimal || saw_exponent ? number_kind::floating_point : number_kind::integer;
+}
+
+std::string normalize_number(std::string_view input)
+{
+    if(input.starts_with('+'))
+    {
+        input.remove_prefix(1);
+    }
+    return std::string{input};
 }
 
 mirror::value from_backend(const YAML::Node& input)
@@ -122,13 +177,14 @@ mirror::value from_backend(const YAML::Node& input)
         {
             return mirror::value::boolean_value(scalar == "true");
         }
-        if(is_number(scalar))
+        const auto numeric_kind = classify_number(scalar);
+        if(numeric_kind == number_kind::floating_point)
         {
-            if(scalar.find('.') != std::string::npos)
-            {
-                return mirror::value::floating_point(scalar, 64);
-            }
-            return mirror::value::signed_integer(scalar, 64);
+            return mirror::value::floating_point(normalize_number(scalar), 64);
+        }
+        if(numeric_kind == number_kind::integer)
+        {
+            return mirror::value::signed_integer(normalize_number(scalar), 64);
         }
         return mirror::value::string(scalar);
     }

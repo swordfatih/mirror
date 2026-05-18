@@ -20,7 +20,7 @@ void deserialize_variant_alternative(std::size_t active_index, const mirror::val
         if(active_index == Index)
         {
             using Alternative = std::variant_alternative_t<Index, clean_t<Variant>>;
-            output = deserialize_value<Alternative>(input);
+            output.template emplace<Index>(deserialize_value<Alternative>(input));
             return;
         }
 

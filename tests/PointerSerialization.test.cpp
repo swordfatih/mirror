@@ -1,7 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "deserialize.hpp"
-#include "serialize.hpp"
+#include <mirror/mirror.hpp>
 
 #include "support/Fixtures.hpp"
 
