@@ -1,15 +1,16 @@
-module;
+#pragma once
 
+#include <cstddef>
 #include <meta>
-
-export module mirror.reflect;
-
-import std;
+#include <span>
+#include <string_view>
+#include <type_traits>
+#include <vector>
 
 namespace mirror
 {
 
-export template <typename Type>
+template <typename Type>
 class reflect
 {
 public:

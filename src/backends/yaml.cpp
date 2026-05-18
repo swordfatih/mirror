@@ -1,13 +1,14 @@
-module;
+#include "backends/yaml.hpp"
 
+#include <cctype>
+#include <cstddef>
+#include <stdexcept>
+#include <string>
 #include <yaml-cpp/yaml.h>
 
-export module mirror.yaml;
-
-import std;
-import mirror.value;
-
 namespace mirror::yaml
+{
+namespace
 {
 
 YAML::Node to_backend(const mirror::value& input)
@@ -34,28 +35,16 @@ YAML::Node to_backend(const mirror::value& input)
             output = input.text;
             break;
         case mirror::value::kind::character:
-            output = YAML::Node{YAML::NodeType::Map};
-            output["_primitive"] = "char";
-            output["bits"] = input.bits;
-            output["value"] = input.text;
+            output = YAML::Load(input.text);
             break;
         case mirror::value::kind::signed_integer:
-            output = YAML::Node{YAML::NodeType::Map};
-            output["_primitive"] = "i";
-            output["bits"] = input.bits;
-            output["value"] = input.text;
+            output = YAML::Load(input.text);
             break;
         case mirror::value::kind::unsigned_integer:
-            output = YAML::Node{YAML::NodeType::Map};
-            output["_primitive"] = "u";
-            output["bits"] = input.bits;
-            output["value"] = input.text;
+            output = YAML::Load(input.text);
             break;
         case mirror::value::kind::floating_point:
-            output = YAML::Node{YAML::NodeType::Map};
-            output["_primitive"] = "f";
-            output["bits"] = input.bits;
-            output["value"] = input.text;
+            output = YAML::Load(input.text);
             break;
         case mirror::value::kind::boolean:
             output = input.boolean;
@@ -109,32 +98,6 @@ mirror::value from_backend(const YAML::Node& input)
     }
     if(input.IsMap())
     {
-        if(input["_primitive"])
-        {
-            const auto kind = input["_primitive"].as<std::string>();
-            const auto bits = input["bits"].as<std::size_t>();
-            const auto text = input["value"].as<std::string>();
-
-            if(kind == "char")
-            {
-                return mirror::value::character(text, bits);
-            }
-            if(kind == "i")
-            {
-                return mirror::value::signed_integer(text, bits);
-            }
-            if(kind == "u")
-            {
-                return mirror::value::unsigned_integer(text, bits);
-            }
-            if(kind == "f")
-            {
-                return mirror::value::floating_point(text, bits);
-            }
-
-            throw std::runtime_error{"unknown mirror scalar kind"};
-        }
-
         mirror::value output;
         output.type = mirror::value::kind::object;
         for(const auto& field: input)
@@ -173,14 +136,16 @@ mirror::value from_backend(const YAML::Node& input)
     throw std::runtime_error{"unsupported YAML node"};
 }
 
-export std::string write(const mirror::value& input)
+} // namespace
+
+std::string write(const mirror::value& input)
 {
     YAML::Emitter emitter;
     emitter << to_backend(input);
     return emitter.c_str();
 }
 
-export mirror::value read(std::string_view input)
+mirror::value read(std::string_view input)
 {
     return from_backend(YAML::Load(std::string{input}));
 }

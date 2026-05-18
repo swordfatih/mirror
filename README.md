@@ -17,15 +17,13 @@ Mirror uses C++ reflection to walk struct/class fields automatically. For suppor
 
 ## Status
 
-Mirror is currently experimental and targets compilers with C++ reflection and module support.
+Mirror is currently experimental and targets compilers with C++ reflection support.
 
 The current project is built with:
 
 - C++26
-- C++ modules
 - `std::meta` reflection
-- GCC module/reflection flags: `-fmodules -freflection`
-- CMake module support for `import std`
+- GCC reflection flag: `-freflection`
 
 This is not portable C++20/23 code today. It is intended for modern compiler experiments around reflection-driven serialization.
 
@@ -36,10 +34,9 @@ This is not portable C++20/23 code today. It is intended for modern compiler exp
 - Format-independent intermediate tree: `mirror::value`
 - JSON backend using `nlohmann/json`
 - YAML backend using `yaml-cpp`
-- Typed primitive metadata for network-stable scalar round trips
+- Plain JSON/YAML primitive output driven by the target C++ type during deserialization
 - Return-by-value deserialization
 - In-place deserialization
-- Catch2 test target
 
 ## Supported Types
 
@@ -89,15 +86,15 @@ struct User
 };
 ```
 
-Import Mirror modules:
+Include Mirror headers:
 
 ```cpp
-import std;
-import mirror.json;
-import mirror.reflect;
-import mirror.serialization;
-import mirror.value;
-import mirror.yaml;
+#include "backends/json.hpp"
+#include "backends/yaml.hpp"
+#include "deserialize.hpp"
+#include "reflect.hpp"
+#include "serialize.hpp"
+#include "value.hpp"
 ```
 
 Serialize to JSON:
@@ -195,7 +192,7 @@ Objects store named fields. Arrays store ordered elements. Primitive scalars sto
 
 This keeps the serialization engine independent of JSON, YAML, or any future backend.
 
-## Primitive Metadata
+## Primitive Values
 
 JSON and YAML do not preserve all C++ scalar information by default. For example, JSON has numbers, but it does not distinguish:
 
@@ -206,30 +203,19 @@ JSON and YAML do not preserve all C++ scalar information by default. For example
 - `float`
 - `double`
 
-Mirror-produced JSON/YAML therefore stores typed primitive values as small metadata objects:
+Mirror-produced JSON/YAML intentionally emits primitive values as plain JSON/YAML scalars:
 
 ```json
-{
-  "_primitive": "i",
-  "bits": 32,
-  "value": "-5"
-}
+-5
 ```
 
-Primitive tags currently used:
-
-- `"char"`: character code unit
-- `"i"`: signed integer
-- `"u"`: unsigned integer
-- `"f"`: floating point
-
-When Mirror reads plain external JSON/YAML numbers without this metadata, it defaults to:
+The target C++ type controls final deserialization. When Mirror reads plain external JSON/YAML numbers into the intermediate tree without a reflected destination type, it defaults to:
 
 - signed integer: 64-bit
 - unsigned integer: 64-bit
 - floating point: 64-bit
 
-The target C++ type still controls final deserialization.
+During typed deserialization, Mirror rejects numeric values that do not fit in the destination C++ type.
 
 ## Pointer Semantics
 
@@ -290,25 +276,17 @@ Supporting that would require an object ID/reference layer in the intermediate t
 
 ## Type Information
 
-Reflected objects include a `_type` field:
+Reflected objects include a `_mirror_type` field:
 
 ```json
 {
-  "_type": "Point",
-  "x": {
-    "_primitive": "i",
-    "bits": 32,
-    "value": "23"
-  },
-  "y": {
-    "_primitive": "i",
-    "bits": 32,
-    "value": "67"
-  }
+  "_mirror_type": "Point",
+  "x": 23,
+  "y": 67
 }
 ```
 
-During deserialization, if `_type` is present, Mirror checks it against the reflected destination type name.
+During deserialization, if `_mirror_type` is present, Mirror checks it against the reflected destination type name.
 
 ## Containers
 
@@ -323,7 +301,7 @@ Map-like containers serialize as arrays of key/value entries so non-string keys 
 ```json
 [
   {
-    "_type": "map_entry",
+    "_mirror_type": "map_entry",
     "key": "...",
     "value": "..."
   }
@@ -338,10 +316,11 @@ The project uses CMake and FetchContent.
 
 Dependencies:
 
-- `spdlog`
 - `nlohmann/json`
 - `yaml-cpp`
 - `Catch2`
+
+The optional demo executable also uses `spdlog`.
 
 Configure and build:
 
@@ -350,7 +329,13 @@ cmake -S . -B build -G Ninja
 cmake --build build --config Debug
 ```
 
-The executable is emitted under:
+The demo executable is disabled by default. Enable it with:
+
+```powershell
+cmake -S . -B build -G Ninja -DMIRROR_BUILD_DEMO=ON
+```
+
+The demo source lives in `examples/demo.cpp`. When enabled, the executable is emitted under:
 
 ```text
 runtime/
@@ -361,7 +346,7 @@ runtime/
 Tests are built as:
 
 ```text
-reflection_tests
+mirror_tests
 ```
 
 Run through CTest:
@@ -375,7 +360,7 @@ Or run the executable directly from `runtime/` after building.
 The tests cover:
 
 - primitive scalar round trips
-- primitive metadata
+- plain primitive JSON/YAML output
 - JSON and YAML round trips
 - arrays and containers
 - maps and unordered maps
@@ -386,17 +371,77 @@ The tests cover:
 - raw pointer failure and in-place deserialization
 - complex nested documents
 
-## Modules
+The test suite is split by area:
 
-Current public modules:
+- `Value.test.cpp`
+- `FormatBackends.test.cpp`
+- `SerializationRoundTrip.test.cpp`
+- `PointerSerialization.test.cpp`
+- `DeserializationErrors.test.cpp`
+- `CustomAdapter.test.cpp`
+
+## Headers
+
+Current public headers:
 
 ```cpp
-import mirror.value;
-import mirror.reflect;
-import mirror.serialization;
-import mirror.json;
-import mirror.yaml;
+#include "reflect.hpp"
+#include "serialize.hpp"
+#include "deserialize.hpp"
+#include "adapter.hpp"
+#include "value.hpp"
+#include "backends/json.hpp"
+#include "backends/yaml.hpp"
 ```
+
+Internal serialization is routed through `src/detail/dispatch.hpp`. Built-in semantic adapters live under `src/adapters/`. Shared concepts and numeric utilities live under `src/detail/`.
+
+Current source layout:
+
+```text
+src/
+  adapter.hpp
+  serialize.hpp
+  deserialize.hpp
+  value.hpp/.cpp
+  reflect.hpp
+
+  adapters/
+    scalar.hpp
+    pointer.hpp
+    optional.hpp
+    variant.hpp
+    range.hpp
+    map.hpp
+    tuple.hpp
+    object.hpp
+
+  detail/
+    dispatch.hpp
+    concepts.hpp
+    utils.hpp
+
+  backends/
+    json.hpp/.cpp
+    yaml.hpp/.cpp
+```
+
+## Adapters
+
+Mirror dispatches serialization through adapters. Built-in adapters handle standard semantic categories such as scalars, pointers, optionals, variants, ranges, maps, tuples, and reflected objects.
+
+Custom types can override dispatch by specializing `mirror::adapter<T>`:
+
+```cpp
+template <>
+struct mirror::adapter<MyType>
+{
+    static mirror::value serialize(const MyType& input);
+    static void deserialize(const mirror::value& input, MyType& output);
+};
+```
+
+Reflection is the fallback for regular user data objects when no custom or built-in semantic adapter applies.
 
 ## Design Notes
 
@@ -415,7 +460,6 @@ Future streaming support can be added by replacing the tree backend with a strea
 ## Current Limitations
 
 - Requires experimental C++ reflection support.
-- Requires C++ modules.
 - Does not preserve pointer identity or aliasing.
 - Does not support polymorphic dynamic type dispatch yet.
 - Does not serialize private fields unless reflection access rules allow it.
