@@ -1,14 +1,14 @@
 #pragma once
 
-#include <mirror/adapter.hpp>
-#include <mirror/detail/utils.hpp>
+#include <mirror/codec/adapter.hpp>
+#include <mirror/codec/value_utils.hpp>
 
 #include <cstddef>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
 
-namespace mirror::detail
+namespace mirror::codec
 {
 
 template <typename Range>
@@ -32,9 +32,9 @@ struct fixed_array_adapter
 
     static void deserialize(const mirror::value& input, Type& output)
     {
-        require_kind(input, mirror::value::kind::array);
+        mirror::codec::require_kind(input, mirror::value::kind::array);
 
-        constexpr bool is_c_array = c_array_like<Type>;
+        constexpr bool is_c_array = mirror::codec::c_array_like<Type>;
         const auto     size = [&] {
             if constexpr(is_c_array)
             {
@@ -68,29 +68,29 @@ struct sequence_adapter
 
     static void deserialize(const mirror::value& input, Type& output)
     {
-        require_kind(input, mirror::value::kind::array);
-        if constexpr(clearable<Type>)
+        mirror::codec::require_kind(input, mirror::value::kind::array);
+        if constexpr(mirror::codec::clearable<Type>)
         {
             output.clear();
         }
 
         for(const auto& element: input.elements)
         {
-            auto value = deserialize_value<typename clean_t<Type>::value_type>(element);
-            if constexpr(push_back_container<Type, decltype(value)>)
+            auto value = deserialize_value<typename mirror::codec::clean_t<Type>::value_type>(element);
+            if constexpr(mirror::codec::push_back_container<Type, decltype(value)>)
             {
                 output.push_back(std::move(value));
             }
-            else if constexpr(insert_container<Type, decltype(value)>)
+            else if constexpr(mirror::codec::insert_container<Type, decltype(value)>)
             {
                 output.insert(std::move(value));
             }
             else
             {
-                static_assert(always_false<Type>, "sequence container needs push_back or insert");
+                static_assert(mirror::codec::always_false<Type>, "sequence container needs push_back or insert");
             }
         }
     }
 };
 
-} // namespace mirror::detail
+} // namespace mirror::codec

@@ -4,8 +4,8 @@
 
 #include <spdlog/spdlog.h>
 
-#include <mirror/backends/json.hpp>
-#include <mirror/backends/yaml.hpp>
+#include <mirror/formats/json.hpp>
+#include <mirror/formats/yaml.hpp>
 #include <mirror/mirror.hpp>
 
 struct Point
@@ -26,7 +26,7 @@ int main()
 {
     Point point{23, 67};
 
-    User user{"fatih", 23, point, std::make_unique<Point>(point)};
+    User user{"username", 23, point, std::make_unique<Point>(point)};
 
     const auto tree = mirror::serialize(user);
 

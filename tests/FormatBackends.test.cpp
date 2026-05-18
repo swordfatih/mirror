@@ -1,8 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <mirror/backends/binary.hpp>
-#include <mirror/backends/json.hpp>
-#include <mirror/backends/yaml.hpp>
+#include <mirror/formats/binary.hpp>
+#include <mirror/formats/json.hpp>
+#include <mirror/formats/yaml.hpp>
 #include <mirror/mirror.hpp>
 
 #include "support/Fixtures.hpp"

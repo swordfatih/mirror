@@ -7,7 +7,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace mirror
+namespace mirror::meta
 {
 
 template <typename Type>
@@ -70,5 +70,13 @@ public:
         }
     }
 };
+
+} // namespace mirror::meta
+
+namespace mirror
+{
+
+template <typename Type>
+using reflect = mirror::meta::reflect<Type>;
 
 } // namespace mirror

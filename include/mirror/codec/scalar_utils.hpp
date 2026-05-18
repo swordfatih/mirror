@@ -1,8 +1,5 @@
 #pragma once
 
-#include <mirror/detail/concepts.hpp>
-#include <mirror/value.hpp>
-
 #include <charconv>
 #include <cmath>
 #include <concepts>
@@ -15,7 +12,7 @@
 #include <string_view>
 #include <system_error>
 
-namespace mirror::detail
+namespace mirror::codec
 {
 
 inline std::string floating_to_string(auto input)
@@ -151,22 +148,4 @@ Type parse_floating_point(std::string_view text)
     return static_cast<Type>(parsed);
 }
 
-inline void require_kind(const mirror::value& input, mirror::value::kind expected)
-{
-    if(input.type != expected)
-    {
-        throw std::runtime_error{"unexpected value kind"};
-    }
-}
-
-inline const mirror::value& require_field(const mirror::value& input, std::string_view name)
-{
-    const auto* field = input.find(name);
-    if(field == nullptr)
-    {
-        throw std::runtime_error{"missing required field"};
-    }
-    return *field;
-}
-
-} // namespace mirror::detail
+} // namespace mirror::codec

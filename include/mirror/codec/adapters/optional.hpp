@@ -1,8 +1,8 @@
 #pragma once
 
-#include <mirror/adapter.hpp>
+#include <mirror/codec/adapter.hpp>
 
-namespace mirror::detail
+namespace mirror::codec
 {
 
 template <typename Type>
@@ -31,4 +31,4 @@ struct optional_adapter
     }
 };
 
-} // namespace mirror::detail
+} // namespace mirror::codec

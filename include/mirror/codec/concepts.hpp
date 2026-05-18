@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mirror/reflect.hpp>
+#include <mirror/meta.hpp>
 
 #include <array>
 #include <concepts>
@@ -15,7 +15,7 @@
 #include <utility>
 #include <variant>
 
-namespace mirror::detail
+namespace mirror::codec
 {
 
 template <typename>
@@ -132,8 +132,8 @@ concept tuple_like = !std_array_like<Type> && requires {
 
 template <typename Type>
 concept reflected_object = requires(Type& value) {
-    mirror::reflect<clean_t<Type>>::name();
-    mirror::reflect<clean_t<Type>>::for_each_field(value, [](std::string_view, auto&) {});
+    mirror::meta::type_name<clean_t<Type>>();
+    mirror::meta::for_each_field(value, [](mirror::meta::field, auto&) {});
 };
 
-} // namespace mirror::detail
+} // namespace mirror::codec

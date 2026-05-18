@@ -1,13 +1,13 @@
 #pragma once
 
-#include <mirror/adapter.hpp>
-#include <mirror/detail/utils.hpp>
+#include <mirror/codec/adapter.hpp>
+#include <mirror/codec/value_utils.hpp>
 
 #include <cstddef>
 #include <stdexcept>
 #include <tuple>
 
-namespace mirror::detail
+namespace mirror::codec
 {
 
 template <typename Tuple, std::size_t... Indexes>
@@ -21,7 +21,7 @@ mirror::value serialize_tuple(const Tuple& input, std::index_sequence<Indexes...
 template <typename Tuple, std::size_t... Indexes>
 void deserialize_tuple(const mirror::value& input, Tuple& output, std::index_sequence<Indexes...>)
 {
-    require_kind(input, mirror::value::kind::array);
+    mirror::codec::require_kind(input, mirror::value::kind::array);
     if(input.elements.size() != sizeof...(Indexes))
     {
         throw std::runtime_error{"tuple element count mismatch"};
@@ -35,13 +35,13 @@ struct tuple_adapter
 {
     static mirror::value serialize(const Type& input)
     {
-        return serialize_tuple(input, std::make_index_sequence<std::tuple_size_v<clean_t<Type>>>{});
+        return serialize_tuple(input, std::make_index_sequence<std::tuple_size_v<mirror::codec::clean_t<Type>>>{});
     }
 
     static void deserialize(const mirror::value& input, Type& output)
     {
-        deserialize_tuple(input, output, std::make_index_sequence<std::tuple_size_v<clean_t<Type>>>{});
+        deserialize_tuple(input, output, std::make_index_sequence<std::tuple_size_v<mirror::codec::clean_t<Type>>>{});
     }
 };
 
-} // namespace mirror::detail
+} // namespace mirror::codec

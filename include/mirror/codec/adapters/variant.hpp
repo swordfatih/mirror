@@ -1,24 +1,24 @@
 #pragma once
 
-#include <mirror/adapter.hpp>
-#include <mirror/detail/utils.hpp>
+#include <mirror/codec/adapter.hpp>
+#include <mirror/codec/value_utils.hpp>
 
 #include <cstddef>
 #include <stdexcept>
 #include <string>
 #include <variant>
 
-namespace mirror::detail
+namespace mirror::codec
 {
 
 template <typename Variant, std::size_t Index = 0>
 void deserialize_variant_alternative(std::size_t active_index, const mirror::value& input, Variant& output)
 {
-    if constexpr(Index < std::variant_size_v<clean_t<Variant>>)
+    if constexpr(Index < std::variant_size_v<mirror::codec::clean_t<Variant>>)
     {
         if(active_index == Index)
         {
-            using Alternative = std::variant_alternative_t<Index, clean_t<Variant>>;
+            using Alternative = std::variant_alternative_t<Index, mirror::codec::clean_t<Variant>>;
             output.template emplace<Index>(deserialize_value<Alternative>(input));
             return;
         }
@@ -46,10 +46,10 @@ struct variant_adapter
 
     static void deserialize(const mirror::value& input, Type& output)
     {
-        require_kind(input, mirror::value::kind::object);
-        const auto index = deserialize_value<std::size_t>(require_field(input, "index"));
-        deserialize_variant_alternative(index, require_field(input, "value"), output);
+        mirror::codec::require_kind(input, mirror::value::kind::object);
+        const auto index = deserialize_value<std::size_t>(mirror::codec::require_field(input, "index"));
+        deserialize_variant_alternative(index, mirror::codec::require_field(input, "value"), output);
     }
 };
 
-} // namespace mirror::detail
+} // namespace mirror::codec

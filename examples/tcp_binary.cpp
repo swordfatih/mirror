@@ -1,6 +1,3 @@
-#include <mirror/backends/binary.hpp>
-#include <mirror/mirror.hpp>
-
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -8,6 +5,11 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include <spdlog/spdlog.h>
+
+#include <mirror/formats/binary.hpp>
+#include <mirror/mirror.hpp>
 
 struct LoginRequest
 {
@@ -21,8 +23,7 @@ std::array<unsigned char, 4> encode_big_endian_size(std::uint32_t size)
         static_cast<unsigned char>((size >> 24U) & 0xFFU),
         static_cast<unsigned char>((size >> 16U) & 0xFFU),
         static_cast<unsigned char>((size >> 8U) & 0xFFU),
-        static_cast<unsigned char>(size & 0xFFU)
-    };
+        static_cast<unsigned char>(size & 0xFFU)};
 }
 
 std::uint32_t decode_big_endian_size(const std::array<unsigned char, 4>& size)
@@ -65,8 +66,7 @@ Message parse_tcp_frame(const std::vector<unsigned char>& frame)
 
     const auto payload = std::string_view{
         reinterpret_cast<const char*>(frame.data() + size_bytes.size()),
-        payload_size
-    };
+        payload_size};
 
     return mirror::deserialize<Message>(mirror::binary::read(payload));
 }
@@ -74,12 +74,15 @@ Message parse_tcp_frame(const std::vector<unsigned char>& frame)
 int main()
 {
     const LoginRequest request{
-        .username = "fatih",
-        .session_id = 42
+        .username = "username",
+        .session_id = 42,
     };
 
     const auto frame = make_tcp_frame(request);
     const auto decoded = parse_tcp_frame<LoginRequest>(frame);
+
+    spdlog::info("TCP binary frame bytes: {}", frame.size());
+    spdlog::info("decoded login request: username={}, session_id={}", decoded.username, decoded.session_id);
 
     return decoded.username == request.username && decoded.session_id == request.session_id ? 0 : 1;
 }

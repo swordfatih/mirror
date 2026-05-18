@@ -5,9 +5,9 @@ Reflection-based serialization for modern C++ experiments.
 Mirror turns C++ objects into a typed intermediate tree, then writes that tree as JSON, YAML, or compact binary. The same tree can be read back and deserialized into C++ objects.
 
 ```cpp
-#include <mirror/backends/binary.hpp>
-#include <mirror/backends/json.hpp>
-#include <mirror/backends/yaml.hpp>
+#include <mirror/formats/binary.hpp>
+#include <mirror/formats/json.hpp>
+#include <mirror/formats/yaml.hpp>
 #include <mirror/mirror.hpp>
 
 #include <cstdint>
@@ -76,9 +76,9 @@ Then include the core header and the format backend headers you use:
 
 ```cpp
 #include <mirror/mirror.hpp>
-#include <mirror/backends/binary.hpp>
-#include <mirror/backends/json.hpp>
-#include <mirror/backends/yaml.hpp>
+#include <mirror/formats/binary.hpp>
+#include <mirror/formats/json.hpp>
+#include <mirror/formats/yaml.hpp>
 ```
 
 When Mirror is embedded through `FetchContent`, tests are disabled by default. When this repository is configured as the top-level project, tests are enabled by default.
@@ -176,21 +176,21 @@ template <typename Type>
 void mirror::deserialize(const mirror::value& input, Type& output);
 ```
 
-### JSON
+### JSON Format
 
 ```cpp
 std::string mirror::json::write(const mirror::value& input);
 mirror::value mirror::json::read(std::string_view input);
 ```
 
-### YAML
+### YAML Format
 
 ```cpp
 std::string mirror::yaml::write(const mirror::value& input);
 mirror::value mirror::yaml::read(std::string_view input);
 ```
 
-### Binary
+### Binary Format
 
 ```cpp
 std::string mirror::binary::write(const mirror::value& input);
@@ -224,7 +224,7 @@ The tree can represent:
 
 Objects store named fields. Arrays store ordered elements. Primitive scalars store their text representation and, where relevant, their bit width.
 
-This keeps object traversal independent from JSON, YAML, or future backends.
+This keeps object traversal independent from JSON, YAML, binary, or future formats.
 
 ## Type Information
 
@@ -255,6 +255,42 @@ Mirror-produced JSON/YAML emits plain values:
 The destination C++ type controls final deserialization. When reading external JSON/YAML into `mirror::value`, numbers default to 64-bit integer or floating-point nodes. Typed deserialization then rejects values that do not fit in the target C++ type.
 
 The binary backend keeps numeric payloads in binary form where possible while preserving Mirror's typed tree shape.
+
+## SQL CRUD Extension
+
+Mirror includes a small header-only SQL CRUD statement builder. It uses `mirror::meta` to inspect model fields and produces SQL text plus bind values. It does not open database connections or execute statements.
+
+```cpp
+#include <mirror/extensions/sql.hpp>
+
+struct User
+{
+    std::uint64_t id = 0;
+    std::string name;
+};
+
+template <>
+struct mirror::sql::table<User>
+{
+    static constexpr std::string_view name = "users";
+    static constexpr std::string_view primary_key = "id";
+};
+
+User user{.id = 1, .name = "username"};
+
+auto insert = mirror::sql::insert(user);
+auto update = mirror::sql::update(user);
+auto select = mirror::sql::select_by_id<User>(1);
+auto remove = mirror::sql::delete_by_id<User>(1);
+```
+
+Example generated statement:
+
+```sql
+INSERT INTO users (id, name) VALUES (?, ?)
+```
+
+`mirror::sql::statement` stores the SQL text and a vector of bind values. Database-specific execution belongs in a thin adapter for SQLite, PostgreSQL, MySQL, or another driver.
 
 ## Pointers
 
@@ -332,6 +368,8 @@ cmake --build build --config Debug
 
 The repository also includes [a tiny TCP-style binary framing example](examples/tcp_binary.cpp). It uses a 4-byte big-endian length prefix followed by `mirror::binary` payload bytes.
 
+There is also [a small SQL CRUD statement example](examples/sql_crud.cpp). It generates `INSERT`, `UPDATE`, `SELECT ... WHERE id = ?`, and `DELETE ... WHERE id = ?` statements with bind values. It does not connect to a database.
+
 Run tests:
 
 ```powershell
@@ -349,40 +387,59 @@ Useful CMake options:
 include/
   mirror/
     mirror.hpp
+    meta.hpp
 
-    adapter.hpp
-    serialize.hpp
-    deserialize.hpp
-    value.hpp
-    reflect.hpp
+    meta/
+      reflect.hpp
+      field.hpp
 
-    adapters/
-      scalar.hpp
-      pointer.hpp
-      optional.hpp
-      variant.hpp
-      range.hpp
-      map.hpp
-      tuple.hpp
-      object.hpp
-
-    detail/
+    codec/
+      value.hpp
+      adapter.hpp
+      serialize.hpp
+      deserialize.hpp
       dispatch.hpp
       concepts.hpp
-      utils.hpp
+      scalar_utils.hpp
+      value_utils.hpp
+      adapters/
+        scalar.hpp
+        pointer.hpp
+        optional.hpp
+        variant.hpp
+        range.hpp
+        map.hpp
+        tuple.hpp
+        object.hpp
 
-    backends/
+    formats/
       binary.hpp
       json.hpp
       yaml.hpp
 
+    extensions/
+      sql.hpp
+      sql/
+        adapter.hpp
+        bind.hpp
+        crud.hpp
+        statement.hpp
+        table.hpp
+
 src/
   value.cpp
-  backends/
+  formats/
     binary.cpp
     json.cpp
     yaml.cpp
 ```
+
+The layers are intentionally separated:
+
+- `meta`: reflected type names and field iteration
+- `codec`: type-category detection, `mirror::value`, and C++ object `<-> mirror::value`
+- `formats`: `mirror::value <->` JSON, YAML, or binary
+- `extensions/sql`: SQL CRUD statement generation using `mirror::meta`
 
 ## Limitations
 

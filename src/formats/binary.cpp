@@ -1,6 +1,6 @@
-#include <mirror/backends/binary.hpp>
+#include <mirror/formats/binary.hpp>
 
-#include <mirror/detail/utils.hpp>
+#include <mirror/codec/scalar_utils.hpp>
 
 #include <bit>
 #include <charconv>
@@ -213,14 +213,14 @@ private:
 
         if(input.bits == 32)
         {
-            const float parsed = mirror::detail::parse_floating_point<float>(input.text);
+            const float parsed = mirror::codec::parse_floating_point<float>(input.text);
             write_byte(numeric_encoding::binary);
             write_little_endian(std::bit_cast<std::uint32_t>(parsed), 4);
             return;
         }
         if(input.bits == 64)
         {
-            const double parsed = mirror::detail::parse_floating_point<double>(input.text);
+            const double parsed = mirror::codec::parse_floating_point<double>(input.text);
             write_byte(numeric_encoding::binary);
             write_little_endian(std::bit_cast<std::uint64_t>(parsed), 8);
             return;
@@ -258,6 +258,7 @@ public:
 private:
     std::string_view input;
     std::size_t      position = 0;
+    std::size_t      last_bits = 0;
 
     std::uint8_t read_byte()
     {
@@ -359,8 +360,6 @@ private:
         throw std::runtime_error{"unknown binary value kind"};
     }
 
-    std::size_t last_bits = 0;
-
     std::string read_string_with_bits()
     {
         last_bits = static_cast<std::size_t>(read_varuint());
@@ -432,7 +431,7 @@ private:
         {
             const auto raw = static_cast<std::uint32_t>(read_little_endian(4));
             return mirror::value::floating_point(
-                mirror::detail::floating_to_string(std::bit_cast<float>(raw)),
+                mirror::codec::floating_to_string(std::bit_cast<float>(raw)),
                 bits
             );
         }
@@ -440,7 +439,7 @@ private:
         {
             const auto raw = read_little_endian(8);
             return mirror::value::floating_point(
-                mirror::detail::floating_to_string(std::bit_cast<double>(raw)),
+                mirror::codec::floating_to_string(std::bit_cast<double>(raw)),
                 bits
             );
         }

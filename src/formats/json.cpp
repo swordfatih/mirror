@@ -1,4 +1,4 @@
-#include <mirror/backends/json.hpp>
+#include <mirror/formats/json.hpp>
 
 #include <cstddef>
 #include <nlohmann/json.hpp>
@@ -10,7 +10,7 @@ namespace mirror::json
 namespace
 {
 
-nlohmann::json to_backend(const mirror::value& input)
+nlohmann::json to_format(const mirror::value& input)
 {
     switch(input.type)
     {
@@ -19,7 +19,7 @@ nlohmann::json to_backend(const mirror::value& input)
             auto output = nlohmann::json::object();
             for(const auto& [name, child]: input.fields)
             {
-                output[name] = to_backend(child);
+                output[name] = to_format(child);
             }
             return output;
         }
@@ -28,7 +28,7 @@ nlohmann::json to_backend(const mirror::value& input)
             auto output = nlohmann::json::array();
             for(const auto& element: input.elements)
             {
-                output.push_back(to_backend(element));
+                output.push_back(to_format(element));
             }
             return output;
         }
@@ -51,7 +51,7 @@ nlohmann::json to_backend(const mirror::value& input)
     return nullptr;
 }
 
-mirror::value from_backend(const nlohmann::json& input)
+mirror::value from_format(const nlohmann::json& input)
 {
     if(input.is_object())
     {
@@ -59,7 +59,7 @@ mirror::value from_backend(const nlohmann::json& input)
         output.type = mirror::value::kind::object;
         for(const auto& [name, child]: input.items())
         {
-            output.fields.emplace_back(name, from_backend(child));
+            output.fields.emplace_back(name, from_format(child));
         }
         return output;
     }
@@ -68,7 +68,7 @@ mirror::value from_backend(const nlohmann::json& input)
         auto output = mirror::value::array();
         for(const auto& element: input)
         {
-            output.elements.emplace_back(from_backend(element));
+            output.elements.emplace_back(from_format(element));
         }
         return output;
     }
@@ -100,12 +100,12 @@ mirror::value from_backend(const nlohmann::json& input)
 
 std::string write(const mirror::value& input)
 {
-    return to_backend(input).dump();
+    return to_format(input).dump();
 }
 
 mirror::value read(std::string_view input)
 {
-    return from_backend(nlohmann::json::parse(input));
+    return from_format(nlohmann::json::parse(input));
 }
 
 } // namespace mirror::json

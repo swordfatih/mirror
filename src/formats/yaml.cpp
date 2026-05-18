@@ -1,4 +1,4 @@
-#include <mirror/backends/yaml.hpp>
+#include <mirror/formats/yaml.hpp>
 
 #include <cctype>
 #include <cstddef>
@@ -18,7 +18,7 @@ enum class number_kind
     floating_point
 };
 
-YAML::Node to_backend(const mirror::value& input)
+YAML::Node to_format(const mirror::value& input)
 {
     YAML::Node output;
 
@@ -28,14 +28,14 @@ YAML::Node to_backend(const mirror::value& input)
             output = YAML::Node{YAML::NodeType::Map};
             for(const auto& [name, child]: input.fields)
             {
-                output[name] = to_backend(child);
+                output[name] = to_format(child);
             }
             break;
         case mirror::value::kind::array:
             output = YAML::Node{YAML::NodeType::Sequence};
             for(const auto& element: input.elements)
             {
-                output.push_back(to_backend(element));
+                output.push_back(to_format(element));
             }
             break;
         case mirror::value::kind::string:
@@ -145,7 +145,7 @@ std::string normalize_number(std::string_view input)
     return std::string{input};
 }
 
-mirror::value from_backend(const YAML::Node& input)
+mirror::value from_format(const YAML::Node& input)
 {
     if(!input || input.IsNull())
     {
@@ -157,7 +157,7 @@ mirror::value from_backend(const YAML::Node& input)
         output.type = mirror::value::kind::object;
         for(const auto& field: input)
         {
-            output.fields.emplace_back(field.first.as<std::string>(), from_backend(field.second));
+            output.fields.emplace_back(field.first.as<std::string>(), from_format(field.second));
         }
         return output;
     }
@@ -166,7 +166,7 @@ mirror::value from_backend(const YAML::Node& input)
         auto output = mirror::value::array();
         for(const auto& element: input)
         {
-            output.elements.emplace_back(from_backend(element));
+            output.elements.emplace_back(from_format(element));
         }
         return output;
     }
@@ -197,13 +197,13 @@ mirror::value from_backend(const YAML::Node& input)
 std::string write(const mirror::value& input)
 {
     YAML::Emitter emitter;
-    emitter << to_backend(input);
+    emitter << to_format(input);
     return emitter.c_str();
 }
 
 mirror::value read(std::string_view input)
 {
-    return from_backend(YAML::Load(std::string{input}));
+    return from_format(YAML::Load(std::string{input}));
 }
 
 } // namespace mirror::yaml

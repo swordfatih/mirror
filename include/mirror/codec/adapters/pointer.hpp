@@ -1,10 +1,10 @@
 #pragma once
 
-#include <mirror/adapter.hpp>
+#include <mirror/codec/adapter.hpp>
 
 #include <stdexcept>
 
-namespace mirror::detail
+namespace mirror::codec
 {
 
 template <typename Type>
@@ -28,11 +28,11 @@ struct pointer_adapter
             return;
         }
 
-        if constexpr(resettable_pointer<Type>)
+        if constexpr(mirror::codec::resettable_pointer<Type>)
         {
             if(output == nullptr)
             {
-                using ElementType = typename pointer_element<Type>::type;
+                using ElementType = typename mirror::codec::pointer_element<Type>::type;
                 output.reset(new ElementType{});
             }
         }
@@ -47,4 +47,4 @@ struct pointer_adapter
     }
 };
 
-} // namespace mirror::detail
+} // namespace mirror::codec
