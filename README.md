@@ -2,10 +2,12 @@
 
 Reflection-based serialization for modern C++ experiments.
 
-Mirror turns C++ objects into a typed intermediate tree, then writes that tree as JSON or YAML. The same tree can be read back and deserialized into C++ objects.
+Mirror turns C++ objects into a typed intermediate tree, then writes that tree as JSON, YAML, or compact binary. The same tree can be read back and deserialized into C++ objects.
 
 ```cpp
-#include <mirror/json.hpp>
+#include <mirror/backends/binary.hpp>
+#include <mirror/backends/json.hpp>
+#include <mirror/backends/yaml.hpp>
 #include <mirror/mirror.hpp>
 
 #include <cstdint>
@@ -70,12 +72,13 @@ FetchContent_MakeAvailable(mirror)
 target_link_libraries(your_target PRIVATE mirror::mirror)
 ```
 
-Then include the core header and the backend headers you use:
+Then include the core header and the format backend headers you use:
 
 ```cpp
 #include <mirror/mirror.hpp>
-#include <mirror/json.hpp>
-#include <mirror/yaml.hpp>
+#include <mirror/backends/binary.hpp>
+#include <mirror/backends/json.hpp>
+#include <mirror/backends/yaml.hpp>
 ```
 
 When Mirror is embedded through `FetchContent`, tests are disabled by default. When this repository is configured as the top-level project, tests are enabled by default.
@@ -105,6 +108,20 @@ const std::string yaml = mirror::yaml::write(mirror::serialize(object));
 
 ```cpp
 const auto object = mirror::deserialize<MyType>(mirror::yaml::read(yaml));
+```
+
+### Serialize To Binary
+
+The binary backend returns a `std::string` containing bytes. For TCP or file storage, send or store it with an explicit length prefix or another framing scheme.
+
+```cpp
+const std::string bytes = mirror::binary::write(mirror::serialize(object));
+```
+
+### Deserialize From Binary
+
+```cpp
+const auto object = mirror::deserialize<MyType>(mirror::binary::read(bytes));
 ```
 
 ### Deserialize Into An Existing Object
@@ -173,6 +190,22 @@ std::string mirror::yaml::write(const mirror::value& input);
 mirror::value mirror::yaml::read(std::string_view input);
 ```
 
+### Binary
+
+```cpp
+std::string mirror::binary::write(const mirror::value& input);
+mirror::value mirror::binary::read(std::string_view input);
+```
+
+The binary format is compact and recursive:
+
+- one byte value kind tags
+- variable-length unsigned integers for sizes and integer payloads
+- zig-zag encoding for signed integers
+- little-endian IEEE payloads for 32-bit and 64-bit floating point values
+- length-prefixed strings, field names, arrays, and objects
+- a short magic/version prefix for format detection
+
 ## Intermediate Tree
 
 Mirror serializes through `mirror::value`, a format-independent tree.
@@ -220,6 +253,8 @@ Mirror-produced JSON/YAML emits plain values:
 ```
 
 The destination C++ type controls final deserialization. When reading external JSON/YAML into `mirror::value`, numbers default to 64-bit integer or floating-point nodes. Typed deserialization then rejects values that do not fit in the target C++ type.
+
+The binary backend keeps numeric payloads in binary form where possible while preserving Mirror's typed tree shape.
 
 ## Pointers
 
@@ -295,6 +330,8 @@ cmake -S . -B build -G Ninja -DMIRROR_BUILD_DEMO=ON
 cmake --build build --config Debug
 ```
 
+The repository also includes [a tiny TCP-style binary framing example](examples/tcp_binary.cpp). It uses a 4-byte big-endian length prefix followed by `mirror::binary` payload bytes.
+
 Run tests:
 
 ```powershell
@@ -312,34 +349,39 @@ Useful CMake options:
 include/
   mirror/
     mirror.hpp
-    json.hpp
-    yaml.hpp
+
+    adapter.hpp
+    serialize.hpp
+    deserialize.hpp
+    value.hpp
+    reflect.hpp
+
+    adapters/
+      scalar.hpp
+      pointer.hpp
+      optional.hpp
+      variant.hpp
+      range.hpp
+      map.hpp
+      tuple.hpp
+      object.hpp
+
+    detail/
+      dispatch.hpp
+      concepts.hpp
+      utils.hpp
+
+    backends/
+      binary.hpp
+      json.hpp
+      yaml.hpp
 
 src/
-  adapter.hpp
-  serialize.hpp
-  deserialize.hpp
-  value.hpp/.cpp
-  reflect.hpp
-
-  adapters/
-    scalar.hpp
-    pointer.hpp
-    optional.hpp
-    variant.hpp
-    range.hpp
-    map.hpp
-    tuple.hpp
-    object.hpp
-
-  detail/
-    dispatch.hpp
-    concepts.hpp
-    utils.hpp
-
+  value.cpp
   backends/
-    json.hpp/.cpp
-    yaml.hpp/.cpp
+    binary.cpp
+    json.cpp
+    yaml.cpp
 ```
 
 ## Limitations
@@ -348,7 +390,7 @@ src/
 - Does not preserve pointer identity or aliasing.
 - Does not support polymorphic dynamic type dispatch.
 - Does not serialize private fields unless reflection access rules allow it.
-- Provides JSON and YAML backends, but no binary/network wire format.
+- Provides tree-level binary serialization, but no built-in TCP framing or schema negotiation.
 - External JSON/YAML numbers use default widths because those formats do not carry C++ scalar sizes.
 
 ## Roadmap Ideas

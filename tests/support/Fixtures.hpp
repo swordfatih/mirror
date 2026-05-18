@@ -2,9 +2,10 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <mirror/json.hpp>
+#include <mirror/backends/binary.hpp>
+#include <mirror/backends/json.hpp>
+#include <mirror/backends/yaml.hpp>
 #include <mirror/mirror.hpp>
-#include <mirror/yaml.hpp>
 
 #include <algorithm>
 #include <array>
@@ -250,6 +251,12 @@ template <typename Type>
 Type yaml_round_trip(const Type& input)
 {
     return mirror::deserialize<Type>(mirror::yaml::read(mirror::yaml::write(mirror::serialize(input))));
+}
+
+template <typename Type>
+Type binary_round_trip(const Type& input)
+{
+    return mirror::deserialize<Type>(mirror::binary::read(mirror::binary::write(mirror::serialize(input))));
 }
 
 } // namespace mirror::test

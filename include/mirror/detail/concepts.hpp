@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../reflect.hpp"
+#include <mirror/reflect.hpp>
 
 #include <array>
 #include <concepts>

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../value.hpp"
-#include "concepts.hpp"
+#include <mirror/detail/concepts.hpp>
+#include <mirror/value.hpp>
 
 #include <charconv>
 #include <cmath>

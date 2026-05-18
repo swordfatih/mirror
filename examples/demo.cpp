@@ -4,9 +4,9 @@
 
 #include <spdlog/spdlog.h>
 
-#include <mirror/json.hpp>
+#include <mirror/backends/json.hpp>
+#include <mirror/backends/yaml.hpp>
 #include <mirror/mirror.hpp>
-#include <mirror/yaml.hpp>
 
 struct Point
 {

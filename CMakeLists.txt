@@ -9,8 +9,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(mirror LANGUAGES CXX)
 
-option(MIRROR_BUILD_DEMO "Build the mirror demo executable" OFF)
-option(MIRROR_BUILD_TESTS "Build the mirror test executable" ${PROJECT_IS_TOP_LEVEL})
+option(MIRROR_BUILD_EXAMPLES "Build all mirror example executables" ON)
+option(MIRROR_BUILD_TESTS "Build the mirror test executable" ON)
 
 include(FetchContent)
 if(MIRROR_BUILD_TESTS)
@@ -23,14 +23,9 @@ endif()
 # ------------------------
 set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
 
-set(JSON_BuildTests OFF CACHE INTERNAL "")
 FetchContent_Declare(nlohmann-json GIT_REPOSITORY https://github.com/nlohmann/json.git GIT_TAG v3.12.0 GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(nlohmann-json)
 
-set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
-set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
-set(YAML_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(yaml-cpp GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git GIT_TAG yaml-cpp-0.9.0 GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(yaml-cpp)
 
@@ -39,8 +34,7 @@ if(MIRROR_BUILD_TESTS)
     FetchContent_MakeAvailable(Catch2)
 endif()
 
-if(MIRROR_BUILD_DEMO)
-    set(SPDLOG_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+if(MIRROR_BUILD_EXAMPLES)
     FetchContent_Declare(spdlog GIT_REPOSITORY https://github.com/gabime/spdlog.git GIT_TAG v1.x GIT_SHALLOW TRUE)
     FetchContent_MakeAvailable(spdlog)
 endif()
@@ -54,7 +48,6 @@ function(configure_mirror_library target)
     target_include_directories(${target}
         PUBLIC
             $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-            $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
             $<INSTALL_INTERFACE:include>
     )
     target_link_libraries(${target} PRIVATE nlohmann_json::nlohmann_json yaml-cpp::yaml-cpp)
@@ -85,16 +78,28 @@ if(cpp_sources)
 endif()
 
 # ------------------------
-# Executable
+# Examples
 # ------------------------
-if(MIRROR_BUILD_DEMO)
-    add_executable(${PROJECT_NAME}_demo ${PROJECT_SOURCE_DIR}/examples/demo.cpp)
-    set_target_properties(${PROJECT_NAME}_demo PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/runtime)
-    target_link_libraries(${PROJECT_NAME}_demo PRIVATE mirror::mirror spdlog::spdlog)
-    target_link_options(${PROJECT_NAME}_demo PRIVATE -static -static-libgcc -static-libstdc++)
-    configure_mirror_binary(${PROJECT_NAME}_demo)
-    if(MINGW AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        target_compile_options(${PROJECT_NAME}_demo PRIVATE -O1)
+if(MIRROR_BUILD_EXAMPLES)
+    file(GLOB example_sources CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/examples/*.cpp")
+
+    foreach(example_source IN LISTS example_sources)
+        get_filename_component(example_name "${example_source}" NAME_WE)
+        set(example_target "${PROJECT_NAME}_${example_name}")
+
+        add_executable(${example_target} "${example_source}")
+        set_target_properties(${example_target} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/runtime)
+        target_link_libraries(${example_target} PRIVATE mirror::mirror spdlog::spdlog)
+        target_link_options(${example_target} PRIVATE -static -static-libgcc -static-libstdc++)
+        configure_mirror_binary(${example_target})
+
+        if(MINGW AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            target_compile_options(${example_target} PRIVATE -O1)
+        endif()
+    endforeach()
+
+    if(MIRROR_BUILD_EXAMPLES AND NOT example_sources)
+        message(WARNING "MIRROR_BUILD_EXAMPLES is ON, but no example sources were found.")
     endif()
 endif()
 

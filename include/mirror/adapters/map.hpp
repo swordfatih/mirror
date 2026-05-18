@@ -1,8 +1,7 @@
 #pragma once
 
-#include "../adapter.hpp"
-
-#include "../detail/utils.hpp"
+#include <mirror/adapter.hpp>
+#include <mirror/detail/utils.hpp>
 
 #include <utility>
 

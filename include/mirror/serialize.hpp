@@ -1,7 +1,7 @@
 #pragma once
 
-#include "detail/dispatch.hpp"
-#include "value.hpp"
+#include <mirror/detail/dispatch.hpp>
+#include <mirror/value.hpp>
 
 namespace mirror
 {

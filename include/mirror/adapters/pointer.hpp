@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../adapter.hpp"
+#include <mirror/adapter.hpp>
 
 #include <stdexcept>
 

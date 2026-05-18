@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../value.hpp"
+#include <mirror/value.hpp>
 
 #include <string>
 #include <string_view>

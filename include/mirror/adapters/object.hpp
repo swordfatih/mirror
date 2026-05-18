@@ -1,9 +1,8 @@
 #pragma once
 
-#include "../adapter.hpp"
-
-#include "../detail/utils.hpp"
-#include "../reflect.hpp"
+#include <mirror/adapter.hpp>
+#include <mirror/detail/utils.hpp>
+#include <mirror/reflect.hpp>
 
 #include <stdexcept>
 #include <string>

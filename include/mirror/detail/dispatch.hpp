@@ -1,14 +1,14 @@
 #pragma once
 
-#include "../adapter.hpp"
-#include "../adapters/map.hpp"
-#include "../adapters/object.hpp"
-#include "../adapters/optional.hpp"
-#include "../adapters/pointer.hpp"
-#include "../adapters/range.hpp"
-#include "../adapters/scalar.hpp"
-#include "../adapters/tuple.hpp"
-#include "../adapters/variant.hpp"
+#include <mirror/adapter.hpp>
+#include <mirror/adapters/map.hpp>
+#include <mirror/adapters/object.hpp>
+#include <mirror/adapters/optional.hpp>
+#include <mirror/adapters/pointer.hpp>
+#include <mirror/adapters/range.hpp>
+#include <mirror/adapters/scalar.hpp>
+#include <mirror/adapters/tuple.hpp>
+#include <mirror/adapters/variant.hpp>
 
 #include <type_traits>
 

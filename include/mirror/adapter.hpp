@@ -1,7 +1,7 @@
 #pragma once
 
-#include "detail/concepts.hpp"
-#include "value.hpp"
+#include <mirror/detail/concepts.hpp>
+#include <mirror/value.hpp>
 
 #include <concepts>
 

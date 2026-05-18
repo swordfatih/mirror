@@ -1,8 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <mirror/json.hpp>
+#include <mirror/backends/binary.hpp>
+#include <mirror/backends/json.hpp>
+#include <mirror/backends/yaml.hpp>
 #include <mirror/mirror.hpp>
-#include <mirror/yaml.hpp>
 
 #include "support/Fixtures.hpp"
 
@@ -66,4 +67,22 @@ TEST_CASE("external YAML numeric syntax is classified as numeric values", "[yaml
     REQUIRE(mirror::yaml::read("1e3").type == mirror::value::kind::floating_point);
     REQUIRE(mirror::yaml::read(".5").type == mirror::value::kind::floating_point);
     REQUIRE(mirror::yaml::read("1.").type == mirror::value::kind::floating_point);
+}
+
+TEST_CASE("binary backend preserves typed value trees", "[binary]")
+{
+    auto object = mirror::value::object("Point");
+    object.fields.emplace_back("x", mirror::value::signed_integer("-5", 32));
+    object.fields.emplace_back("y", mirror::value::floating_point("3.25", 64));
+
+    const auto encoded = mirror::binary::write(object);
+    const auto decoded = mirror::binary::read(encoded);
+
+    REQUIRE(decoded.type == mirror::value::kind::object);
+    REQUIRE(decoded.find("_mirror_type")->text == "Point");
+    REQUIRE(decoded.find("x")->type == mirror::value::kind::signed_integer);
+    REQUIRE(decoded.find("x")->text == "-5");
+    REQUIRE(decoded.find("x")->bits == 32);
+    REQUIRE(decoded.find("y")->type == mirror::value::kind::floating_point);
+    REQUIRE(decoded.find("y")->bits == 64);
 }

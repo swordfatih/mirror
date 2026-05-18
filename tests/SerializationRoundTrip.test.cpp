@@ -11,6 +11,7 @@ TEST_CASE("scalar primitives preserve values through JSON and YAML", "[serializa
 
     mirror::test::require_equal(input, mirror::test::json_round_trip(input));
     mirror::test::require_equal(input, mirror::test::yaml_round_trip(input));
+    mirror::test::require_equal(input, mirror::test::binary_round_trip(input));
 }
 
 TEST_CASE("containers and tuple-like types round-trip", "[serialization][containers]")
@@ -19,6 +20,7 @@ TEST_CASE("containers and tuple-like types round-trip", "[serialization][contain
 
     mirror::test::require_equal(input, mirror::test::json_round_trip(input));
     mirror::test::require_equal(input, mirror::test::yaml_round_trip(input));
+    mirror::test::require_equal(input, mirror::test::binary_round_trip(input));
 }
 
 TEST_CASE("optional and variant values round-trip", "[serialization][optional][variant]")
@@ -27,6 +29,7 @@ TEST_CASE("optional and variant values round-trip", "[serialization][optional][v
 
     mirror::test::require_equal(input, mirror::test::json_round_trip(input));
     mirror::test::require_equal(input, mirror::test::yaml_round_trip(input));
+    mirror::test::require_equal(input, mirror::test::binary_round_trip(input));
 }
 
 TEST_CASE("variant duplicate alternatives preserve the active index", "[serialization][variant]")
@@ -37,6 +40,11 @@ TEST_CASE("variant duplicate alternatives preserve the active index", "[serializ
 
     REQUIRE(output.index() == 1);
     REQUIRE(std::get<1>(output) == 42);
+
+    const auto binary_output = mirror::test::binary_round_trip(input);
+
+    REQUIRE(binary_output.index() == 1);
+    REQUIRE(std::get<1>(binary_output) == 42);
 }
 
 TEST_CASE("complex nested documents round-trip through JSON and YAML", "[serialization][complex]")
@@ -45,4 +53,5 @@ TEST_CASE("complex nested documents round-trip through JSON and YAML", "[seriali
 
     mirror::test::require_equal(input, mirror::test::json_round_trip(input));
     mirror::test::require_equal(input, mirror::test::yaml_round_trip(input));
+    mirror::test::require_equal(input, mirror::test::binary_round_trip(input));
 }
